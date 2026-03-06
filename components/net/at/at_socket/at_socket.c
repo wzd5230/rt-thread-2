@@ -684,7 +684,7 @@ int at_bind(int socket, const struct sockaddr *name, socklen_t namelen)
     socketaddr_to_ipaddr_port(name, &input_ipaddr, &port);
 
     /* input ip address is different from device ip address */
-    if (ip_addr_cmp(&input_ipaddr, &local_ipaddr) != 0)
+    if (ip_addr_cmp(&input_ipaddr, &local_ipaddr) == 0)
     {
         struct at_socket *new_sock = RT_NULL;
         struct at_device *new_device = RT_NULL;
