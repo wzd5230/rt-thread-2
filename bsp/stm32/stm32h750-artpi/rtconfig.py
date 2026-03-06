@@ -19,13 +19,13 @@ if  CROSS_TOOL == 'gcc':
     PLATFORM    = 'gcc'
     EXEC_PATH   = r'/opt/gcc-arm-none-eabi/bin/'
 elif CROSS_TOOL == 'keil':
-    PLATFORM    = 'armcc'
+    PLATFORM    = 'armclang'   #KEIL AC6
     EXEC_PATH   = r'C:/Keil_v5'
 elif CROSS_TOOL == 'iar':
     PLATFORM    = 'iccarm'
     EXEC_PATH   = r'C:/Program Files (x86)/IAR Systems/Embedded Workbench 8.3'
 
-if os.getenv('RTT_EXEC_PATH'):
+if os.getenv('RTT_EXEC_PATH') and (CROSS_TOOL == 'gcc'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
 
 BUILD = 'debug'
@@ -61,7 +61,8 @@ if PLATFORM == 'gcc':
     CFLAGS += ' -std=gnu99'
 
     POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
-
+    POST_ACTION += OBJCPY + ' -O ihex $TARGET rt-thread.hex\n'
+    
 elif PLATFORM == 'armcc':
     # toolchains
     CC = 'armcc'
@@ -74,7 +75,7 @@ elif PLATFORM == 'armcc':
     DEVICE = ' --cpu Cortex-M7.fp.sp'
     CFLAGS = '-c ' + DEVICE + ' --apcs=interwork --c99'
     AFLAGS = DEVICE + ' --apcs=interwork '
-    LFLAGS = DEVICE + ' --scatter "board\linker_scripts\link.sct" --info sizes --info totals --info unused --info veneers --list rtthread.map --strict'
+    LFLAGS = DEVICE + r' --scatter "board\linker_scripts\link.sct" --info sizes --info totals --info unused --info veneers --list rtthread.map --strict'
     CFLAGS += ' -I' + EXEC_PATH + '/ARM/ARMCC/include'
     LFLAGS += ' --libpath=' + EXEC_PATH + '/ARM/ARMCC/lib'
 

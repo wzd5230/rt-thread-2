@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2024, RT-Thread Development Team
+ * Copyright (c) 2006-2025, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -69,7 +69,7 @@ void ht32_usart_gpio_init(void *instance)
     }
 #endif
 }
-#endif
+#endif  /* BSP_USING_UART */
 
 /* GPIO configuration for SPI */
 #ifdef BSP_USING_SPI
@@ -104,15 +104,15 @@ void ht32_spi_gpio_init(void *instance)
     }
 #endif
 }
-#endif
+#endif  /* BSP_USING_SPI */
 
 /* GPIO configuration for I2C */
-#ifdef BSP_USING_I2C
-void ht32_i2c_gpio_init(void *instance)
+#ifdef BSP_USING_I2C_HW
+void ht32_hardware_i2c_gpio_init(void *instance)
 {
     CKCU_PeripClockConfig_TypeDef   CKCUClock = {{0}};
     HT_I2C_TypeDef *i2c_x = (HT_I2C_TypeDef *)instance;
-#ifdef BSP_USING_I2C0
+#ifdef BSP_USING_I2C0_HW
     if(HT_I2C0 == i2c_x)
     {
         CKCUClock.Bit.HTCFG_I2C0_SCL_GPIO_CLK = 1;
@@ -123,7 +123,7 @@ void ht32_i2c_gpio_init(void *instance)
         AFIO_GPxConfig(HTCFG_I2C0_SDA_GPIO_ID,HTCFG_I2C0_SDA_GPIO_PIN,AFIO_FUN_I2C);
     }
 #endif
-#ifdef BSP_USING_I2C1
+#ifdef BSP_USING_I2C1_HW
     if(HT_I2C1 == i2c_x)
     {
         CKCUClock.Bit.HTCFG_I2C1_SCL_GPIO_CLK = 1;
@@ -135,4 +135,154 @@ void ht32_i2c_gpio_init(void *instance)
     }
 #endif
 }
+#endif  /* BSP_USING_I2C_HW */
+/* GPIO configuration for ADC */
+#ifdef BSP_USING_ADC
+void ht32_adc_gpio_init(void *instance,int8_t channel)
+{
+    CKCU_PeripClockConfig_TypeDef CKCUClock = {{ 0 }};
+    HT_ADC_TypeDef *adc_x = (HT_ADC_TypeDef *)instance;
+#ifdef BSP_USING_ADC0
+    if (HT_ADC0 == adc_x)
+    {
+        /* Enable peripheral clock */
+        CKCUClock.Bit.AFIO = 1;
+        CKCUClock.Bit.ADC0 = 1;
+        CKCU_PeripClockConfig(CKCUClock, ENABLE);
+
+        /* Configure AFIO mode as ADC function */
+        switch(channel)
+        {
+            case 0:
+                AFIO_GPxConfig(HTCFG_ADC0CH0_GPIO_ID, HTCFG_ADC0CH0_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 1:
+                AFIO_GPxConfig(HTCFG_ADC0CH1_GPIO_ID, HTCFG_ADC0CH1_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 2:
+                AFIO_GPxConfig(HTCFG_ADC0CH2_GPIO_ID, HTCFG_ADC0CH2_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 3:
+                AFIO_GPxConfig(HTCFG_ADC0CH3_GPIO_ID, HTCFG_ADC0CH3_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 4:
+                AFIO_GPxConfig(HTCFG_ADC0CH4_GPIO_ID, HTCFG_ADC0CH4_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 5:
+                AFIO_GPxConfig(HTCFG_ADC0CH5_GPIO_ID, HTCFG_ADC0CH5_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 6:
+                AFIO_GPxConfig(HTCFG_ADC0CH6_GPIO_ID, HTCFG_ADC0CH6_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 7:
+                AFIO_GPxConfig(HTCFG_ADC0CH7_GPIO_ID, HTCFG_ADC0CH7_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 8:
+                AFIO_GPxConfig(HTCFG_ADC0CH8_GPIO_ID, HTCFG_ADC0CH8_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 9:
+                AFIO_GPxConfig(HTCFG_ADC0CH9_GPIO_ID, HTCFG_ADC0CH9_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 10:
+                AFIO_GPxConfig(HTCFG_ADC0CH10_GPIO_ID, HTCFG_ADC0CH10_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 11:
+                AFIO_GPxConfig(HTCFG_ADC0CH11_GPIO_ID, HTCFG_ADC0CH11_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 12:
+                AFIO_GPxConfig(HTCFG_ADC0CH12_GPIO_ID, HTCFG_ADC0CH12_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 13:
+                AFIO_GPxConfig(HTCFG_ADC0CH13_GPIO_ID, HTCFG_ADC0CH13_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 14:
+                AFIO_GPxConfig(HTCFG_ADC0CH14_GPIO_ID, HTCFG_ADC0CH14_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 15:
+                AFIO_GPxConfig(HTCFG_ADC0CH15_GPIO_ID, HTCFG_ADC0CH15_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            default:
+                break;
+        }
+    }
 #endif
+#ifdef BSP_USING_ADC1
+    if (HT_ADC1 == adc_x)
+    {
+        /* Enable peripheral clock */
+        CKCUClock.Bit.AFIO = 1;
+        CKCUClock.Bit.ADC1 = 1;
+        CKCU_PeripClockConfig(CKCUClock, ENABLE);
+
+        /* Configure AFIO mode as ADC function */
+        switch(channel)
+        {
+            case 0:
+                AFIO_GPxConfig(HTCFG_ADC1CH0_GPIO_ID, HTCFG_ADC1CH0_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 1:
+                AFIO_GPxConfig(HTCFG_ADC1CH1_GPIO_ID, HTCFG_ADC1CH1_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 2:
+                AFIO_GPxConfig(HTCFG_ADC1CH2_GPIO_ID, HTCFG_ADC1CH2_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 3:
+                AFIO_GPxConfig(HTCFG_ADC1CH3_GPIO_ID, HTCFG_ADC1CH3_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 4:
+                AFIO_GPxConfig(HTCFG_ADC1CH4_GPIO_ID, HTCFG_ADC1CH4_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 5:
+                AFIO_GPxConfig(HTCFG_ADC1CH5_GPIO_ID, HTCFG_ADC1CH5_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 6:
+                AFIO_GPxConfig(HTCFG_ADC1CH6_GPIO_ID, HTCFG_ADC1CH6_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            case 7:
+                AFIO_GPxConfig(HTCFG_ADC1CH7_GPIO_ID, HTCFG_ADC1CH7_AFIO_PIN, AFIO_FUN_ADC0);
+                break;
+            default:
+                break;
+        }
+    }
+#endif
+}
+#endif  /* BSP_USING_ADC */
+
+/* GPIO configuration for SDIO */
+#ifdef BSP_USING_SDIO
+void ht32_sdio_gpio_init(void *instance)
+{
+    CKCU_PeripClockConfig_TypeDef CKCUClock = {{0}};
+    HT_SDIO_TypeDef *sdio_x = (HT_SDIO_TypeDef *)instance;
+    if(HT_SDIO == sdio_x)
+    {
+        CKCUClock.Bit.HTCFG_SDIO_CLK_GPIO_CLK   = 1;
+        CKCUClock.Bit.HTCFG_SDIO_CMD_GPIO_CLK   = 1;
+        CKCUClock.Bit.HTCFG_SDIO_DAT0_GPIO_CLK  = 1;
+        CKCUClock.Bit.HTCFG_SDIO_DAT1_GPIO_CLK  = 1;
+        CKCUClock.Bit.HTCFG_SDIO_DAT2_GPIO_CLK  = 1;
+        CKCUClock.Bit.HTCFG_SDIO_DAT3_GPIO_CLK  = 1;
+        CKCUClock.Bit.SDIO                      = 1;
+        CKCUClock.Bit.PDMA                      = 1;
+        CKCUClock.Bit.AFIO                      = 1;
+        CKCU_PeripClockConfig(CKCUClock, ENABLE);
+
+        /* Configure SDIO pins                                                                                    */
+        AFIO_GPxConfig(HTCFG_SDIO_CLK_GPIO_ID, HTCFG_SDIO_CLK_GPIO_PIN, AFIO_FUN_SDIO);
+        AFIO_GPxConfig(HTCFG_SDIO_CMD_GPIO_ID, HTCFG_SDIO_CMD_GPIO_PIN, AFIO_FUN_SDIO);
+        AFIO_GPxConfig(HTCFG_SDIO_DAT0_GPIO_ID, HTCFG_SDIO_DAT0_GPIO_PIN, AFIO_FUN_SDIO);
+        AFIO_GPxConfig(HTCFG_SDIO_DAT1_GPIO_ID, HTCFG_SDIO_DAT1_GPIO_PIN, AFIO_FUN_SDIO);
+        AFIO_GPxConfig(HTCFG_SDIO_DAT2_GPIO_ID, HTCFG_SDIO_DAT2_GPIO_PIN, AFIO_FUN_SDIO);
+        AFIO_GPxConfig(HTCFG_SDIO_DAT3_GPIO_ID, HTCFG_SDIO_DAT3_GPIO_PIN, AFIO_FUN_SDIO);
+        /* 配置SDIO引脚驱动能力 */
+        GPIO_DriveConfig(HTCFG_SDIO_CLK_GPIO_PORT, HTCFG_SDIO_CLK_GPIO_PIN, GPIO_DV_8MA);
+        GPIO_DriveConfig(HTCFG_SDIO_CMD_GPIO_PORT, HTCFG_SDIO_CMD_GPIO_PIN, GPIO_DV_8MA);
+        GPIO_DriveConfig(HTCFG_SDIO_DAT0_GPIO_PORT, HTCFG_SDIO_DAT0_GPIO_PIN, GPIO_DV_8MA);
+        GPIO_DriveConfig(HTCFG_SDIO_DAT1_GPIO_PORT, HTCFG_SDIO_DAT1_GPIO_PIN, GPIO_DV_8MA);
+        GPIO_DriveConfig(HTCFG_SDIO_DAT2_GPIO_PORT, HTCFG_SDIO_DAT2_GPIO_PIN, GPIO_DV_8MA);
+        GPIO_DriveConfig(HTCFG_SDIO_DAT3_GPIO_PORT, HTCFG_SDIO_DAT3_GPIO_PIN, GPIO_DV_8MA);
+
+    }
+}
+#endif /* BSP_USING_SDIO */

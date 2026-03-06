@@ -28,6 +28,11 @@
 #ifndef RT_MAIN_THREAD_PRIORITY
 #define RT_MAIN_THREAD_PRIORITY       (RT_THREAD_PRIORITY_MAX / 3)
 #endif /* RT_MAIN_THREAD_PRIORITY */
+#if (RT_MAIN_THREAD_PRIORITY >= RT_THREAD_PRIORITY_MAX)
+#error "RT_MAIN_THREAD_PRIORITY must be < RT_THREAD_PRIORITY_MAX"
+#elif (RT_MAIN_THREAD_PRIORITY < 0)
+#error "RT_MAIN_THREAD_PRIORITY must be non-negative"
+#endif /* RT_MAIN_THREAD_PRIORITY range check */
 #endif /* RT_USING_USER_MAIN */
 
 #ifdef RT_USING_COMPONENTS_INIT
@@ -90,7 +95,7 @@ void rt_components_board_init(void)
     const struct rt_init_desc *desc;
     for (desc = &__rt_init_desc_rti_board_start; desc < &__rt_init_desc_rti_board_end; desc ++)
     {
-        rt_kprintf("initialize %s", desc->fn_name);
+        rt_kprintf("initialize %s\n", desc->fn_name);
         result = desc->fn();
         rt_kprintf(":%d done\n", result);
     }
@@ -116,7 +121,7 @@ void rt_components_init(void)
     rt_kprintf("do components initialization.\n");
     for (desc = &__rt_init_desc_rti_board_end; desc < &__rt_init_desc_rti_end; desc ++)
     {
-        rt_kprintf("initialize %s", desc->fn_name);
+        rt_kprintf("initialize %s\n", desc->fn_name);
         result = desc->fn();
         rt_kprintf(":%d done\n", result);
     }
@@ -269,6 +274,9 @@ int rtthread_startup(void)
 
     /* idle thread initialization */
     rt_thread_idle_init();
+
+    /* defunct thread initialization */
+    rt_thread_defunct_init();
 
 #ifdef RT_USING_SMP
     rt_hw_spin_lock(&_cpus_lock);

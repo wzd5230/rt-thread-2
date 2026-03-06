@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2023, RT-Thread Development Team
+ * Copyright (c) 2006-2024, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -7,7 +7,7 @@
  * Date           Author       Notes
  * 2018-10-30     SummerGift   first version
  * 2019-03-05     whj4674672   add stm32h7
- * 2020-10-14     Dozingfiretruck   Porting for stm32wbxx
+ * 2020-10-14     PeakRacing   Porting for stm32wbxx
  */
 
 #ifndef __DRV_USART_H__
@@ -43,6 +43,8 @@ int rt_hw_usart_init(void);
 #define UART_RX_DMA_IT_HT_FLAG          0x01
 #define UART_RX_DMA_IT_TC_FLAG          0x02
 
+#define UART_CTRL_SET_BLOCK_TIMEOUT     0x20
+
 /* stm32 config class */
 struct stm32_uart_config
 {
@@ -59,6 +61,7 @@ struct stm32_uart
     UART_HandleTypeDef handle;
     struct stm32_uart_config *config;
     rt_uint32_t DR_mask;
+    rt_uint32_t tx_block_timeout;
 
 #ifdef RT_SERIAL_USING_DMA
     struct

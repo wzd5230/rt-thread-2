@@ -15,7 +15,7 @@
 
 #define MAX_HANDLERS    26
 
-extern rt_uint32_t rt_interrupt_nest;
+extern rt_atomic_t rt_interrupt_nest;
 
 /* exception and interrupt handler table */
 rt_isr_handler_t isr_table[MAX_HANDLERS];
@@ -34,7 +34,7 @@ unsigned char interrupt_bank3[256];
 
 void rt_hw_interrupt_handle(int vector)
 {
-    rt_kprintf("Unhandled interrupt %d occured!!!\n", vector);
+    rt_kprintf("Unhandled interrupt %d occurred!!!\n", vector);
 }
 
 /**

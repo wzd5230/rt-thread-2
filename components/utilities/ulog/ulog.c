@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2022, RT-Thread Development Team
+ * Copyright (c) 2006-2024 RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -108,6 +108,7 @@ struct rt_ulog
 #endif /* ULOG_USING_FILTER */
 };
 
+#ifdef ULOG_OUTPUT_LEVEL
 /* level output info */
 static const char * const level_output_info[] =
 {
@@ -120,6 +121,7 @@ static const char * const level_output_info[] =
     "I/",
     "D/",
 };
+#endif /* ULOG_OUTPUT_LEVEL */
 
 #ifdef ULOG_USING_COLOR
 /* color output info */
@@ -425,6 +427,47 @@ rt_weak rt_size_t ulog_tail_formater(char *log_buf, rt_size_t log_len, rt_bool_t
     return log_len;
 }
 
+/**
+ * @brief Print a warning message once (best-effort).
+ *
+ * @param[in,out] printed  Pointer to a per-call-site flag used to suppress
+ *                          repeated prints.
+ * @param[in]     msg      Warning message to print.
+ *
+ * @details This helper provides a lightweight, best-effort "print-once"
+ *          mechanism for diagnostic warnings.
+ *
+ *          ulog output may be executed in different contexts (thread or ISR)
+ *          and on single-core or SMP targets. To avoid unsafe blocking,
+ *          excessive latency, or re-entrancy risks in these contexts, this
+ *          function intentionally avoids locks, spinlocks, and atomic CAS.
+ *
+ *          Under extreme multi-thread or SMP contention, it is therefore
+ *          possible that the warning is printed more than once. This behavior
+ *          is acceptable because the message is diagnostic-only and the
+ *          critical logging path must remain lightweight.
+ */
+static void ulog_warn_once(rt_bool_t *printed, const char *msg)
+{
+    if (*printed == RT_FALSE)
+    {
+        /* Set first to reduce re-entrancy and recursive logging. */
+        *printed = RT_TRUE;
+        rt_kprintf("%s", msg);
+    }
+}
+
+/**
+ * @brief Print a "line buffer too small" warning once (best-effort).
+ */
+static void ulog_no_enough_buffer_printf(void)
+{
+    static rt_bool_t warned_line_buf = RT_FALSE;
+    ulog_warn_once(&warned_line_buf,
+                   "Warning: There is not enough buffer to output the log,"
+                   " please increase the ULOG_LINE_BUF_SIZE option.\n");
+}
+
 rt_weak rt_size_t ulog_formater(char *log_buf, rt_uint32_t level, const char *tag, rt_bool_t newline,
         const char *format, va_list args)
 {
@@ -448,6 +491,7 @@ rt_weak rt_size_t ulog_formater(char *log_buf, rt_uint32_t level, const char *ta
     {
         /* using max length */
         log_len = ULOG_LINE_BUF_SIZE;
+        ulog_no_enough_buffer_printf();
     }
     /* log tail */
     return ulog_tail_formater(log_buf, log_len, newline, level);
@@ -476,6 +520,7 @@ rt_weak rt_size_t ulog_hex_formater(char *log_buf, const char *tag, const rt_uin
     else
     {
         log_len = ULOG_LINE_BUF_SIZE;
+        ulog_no_enough_buffer_printf();
     }
     /* dump hex */
     for (j = 0; j < width; j++)
@@ -528,14 +573,14 @@ static void ulog_output_to_all_backend(rt_uint32_t level, const char *tag, rt_bo
         {
             continue;
         }
-#if !defined(ULOG_USING_COLOR) || defined(ULOG_USING_SYSLOG)
-        backend->output(backend, level, tag, is_raw, log, len);
-#else
         if (backend->filter && backend->filter(backend, level, tag, is_raw, log, len) == RT_FALSE)
         {
             /* backend's filter is not match, so skip output */
             continue;
         }
+#if !defined(ULOG_USING_COLOR) || defined(ULOG_USING_SYSLOG)
+        backend->output(backend, level, tag, is_raw, log, len);
+#else
         if (backend->support_color || is_raw)
         {
             backend->output(backend, level, tag, is_raw, log, len);
@@ -594,21 +639,29 @@ static void do_output(rt_uint32_t level, const char *tag, rt_bool_t is_raw, cons
             }
             else
             {
-                static rt_bool_t already_output = RT_FALSE;
-                if (already_output == RT_FALSE)
-                {
-                    rt_kprintf("Warning: There is no enough buffer for saving async log,"
-                            " please increase the ULOG_ASYNC_OUTPUT_BUF_SIZE option.\n");
-                    already_output = RT_TRUE;
-                }
+                static rt_bool_t warned_async_log_buf = RT_FALSE;
+                ulog_warn_once(&warned_async_log_buf,
+                               "Warning: There is not enough buffer for saving async log,"
+                               " please increase the ULOG_ASYNC_OUTPUT_BUF_SIZE option.\n");
             }
         }
         else if (ulog.async_rb)
         {
             /* log_buf_size contain the tail \0, which will lead discard follow char, so only put log_buf_size -1  */
-            rt_ringbuffer_put(ulog.async_rb, (const rt_uint8_t *)log_buf, (rt_uint16_t)log_buf_size - 1);
-            /* send a notice */
-            rt_sem_release(&ulog.async_notice);
+            rt_size_t req_len = (rt_size_t)log_buf_size - 1;
+            rt_size_t put_len = rt_ringbuffer_put(ulog.async_rb, (const rt_uint8_t *)log_buf, (rt_uint32_t)req_len);
+            /* send a notice after writing data */
+            if (put_len > 0)
+            {
+                rt_sem_release(&ulog.async_notice);
+            }
+            if (put_len < req_len)
+            {
+                static rt_bool_t warned_async_raw_partial = RT_FALSE;
+                ulog_warn_once(&warned_async_raw_partial,
+                               "Warning: There is not enough buffer for saving async raw log,"
+                               " please increase the ULOG_ASYNC_OUTPUT_BUF_SIZE option.\n");
+            }
         }
 
         return;
@@ -1088,7 +1141,7 @@ const char *ulog_global_filter_kw_get(void)
     return ulog.filter.keyword;
 }
 
-#ifdef RT_USING_FINSH
+#if defined(RT_USING_FINSH) && defined(ULOG_USING_FINSH_CMD)
 #include <finsh.h>
 
 static void _print_lvl_info(void)
@@ -1263,9 +1316,27 @@ static void ulog_filter(uint8_t argc, char **argv)
     }
 }
 MSH_CMD_EXPORT(ulog_filter, Show ulog filter settings);
-#endif /* RT_USING_FINSH */
+#endif /* RT_USING_FINSH && ULOG_USING_FINSH_CMD */
 #endif /* ULOG_USING_FILTER */
 
+/**
+ * @brief register the backend device into the ulog.
+ *
+ * @param backend Backend device handle, a pointer to a "struct ulog_backend" obj.
+ * @param name Backend device name.
+ * @param support_color Whether it supports color logs.
+ * @return rt_err_t - return 0 on success.
+ *
+ * @note - This function is used to register the backend device into the ulog,
+ *       ensuring that the function members in the backend device structure are set before registration.
+ *       - about struct ulog_backend:
+ *        1. The name and support_color properties can be passed in through the ulog_backend_register() function.
+ *        2. output is the back-end specific output function, and all backends must implement the interface.
+ *        3. init/deinit is optional, init is called at register, and deinit is called at unregister or ulog_deinit.
+ *        4. flush is also optional, and some internal output cached backends need to implement this interface.
+ *           For example, some file systems with RAM cache. The flush of the backend is usually called by
+ *           ulog_flush in the case of an exception such as assertion or hardfault.
+ */
 rt_err_t ulog_backend_register(ulog_backend_t backend, const char *name, rt_bool_t support_color)
 {
     rt_base_t level;
@@ -1291,6 +1362,13 @@ rt_err_t ulog_backend_register(ulog_backend_t backend, const char *name, rt_bool
     return RT_EOK;
 }
 
+/**
+ * @brief unregister a backend device that has already been registered.
+ *
+ * @param backend Backend device handle
+ * @return rt_err_t - return 0 on success.
+ * @note deinit function will be called at unregister.
+ */
 rt_err_t ulog_backend_unregister(ulog_backend_t backend)
 {
     rt_base_t level;
@@ -1407,7 +1485,6 @@ void ulog_async_output_enabled(rt_bool_t enabled)
  */
 rt_err_t ulog_async_waiting_log(rt_int32_t time)
 {
-    rt_sem_control(&ulog.async_notice, RT_IPC_CMD_RESET, RT_NULL);
     return rt_sem_take(&ulog.async_notice, time);
 }
 
@@ -1464,6 +1541,14 @@ void ulog_flush(void)
     }
 }
 
+/**
+ * @brief ulog initialization
+ *
+ * @return int return 0 on success, return -5 when failed of insufficient memory.
+ *
+ * @note This function must be called to complete ulog initialization before using ulog.
+ *       This function will also be called automatically if component auto-initialization is turned on.
+ */
 int ulog_init(void)
 {
     if (ulog.init_ok)
@@ -1489,6 +1574,12 @@ int ulog_init(void)
         return -RT_ENOMEM;
     }
     rt_sem_init(&ulog.async_notice, "ulog", 0, RT_IPC_FLAG_FIFO);
+    /*
+     * Use binary-semaphore semantics for async_notice.
+     * This relies on ulog_async_output() draining all pending logs in one wakeup,
+     * so coalescing multiple notices will not lose log data.
+     */
+    rt_sem_control(&ulog.async_notice, RT_IPC_CMD_SET_VLIMIT, (void *)1);
 #endif /* ULOG_USING_ASYNC_OUTPUT */
 
 #ifdef ULOG_USING_FILTER
@@ -1522,6 +1613,11 @@ int ulog_async_init(void)
 INIT_PREV_EXPORT(ulog_async_init);
 #endif /* ULOG_USING_ASYNC_OUTPUT */
 
+/**
+ * @brief ulog deinitialization
+ *
+ * @note This deinit release resource can be executed when ulog is no longer used.
+ */
 void ulog_deinit(void)
 {
     rt_slist_t *node;

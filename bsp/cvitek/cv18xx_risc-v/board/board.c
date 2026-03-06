@@ -14,19 +14,32 @@
 
 #include "sbi.h"
 
+extern unsigned int __sram_end;
+#define RAM_END     (rt_size_t)((void *)&__sram_end)
+
+extern unsigned int __bss_start;
+extern unsigned int __bss_end;
+
+#define RT_HW_HEAP_BEGIN ((void *)&__bss_end)
+#define RT_HW_HEAP_END   ((void *)((rt_size_t)RT_HW_HEAP_BEGIN + 8 * 1024 * 1024))
+
+#define RT_HW_PAGE_START RT_HW_HEAP_END
+#define RT_HW_PAGE_END   ((void *)(RAM_END))
+
 #ifdef RT_USING_SMART
 #include "riscv_mmu.h"
 #include "mmu.h"
 #include "page.h"
 #include "lwp_arch.h"
 
+#include "mem_layout.h"
+
 rt_region_t init_page_region = {(rt_size_t)RT_HW_PAGE_START, (rt_size_t)RT_HW_PAGE_END};
 
 extern size_t MMUTable[];
 
 struct mem_desc platform_mem_desc[] = {
-    {KERNEL_VADDR_START, (rt_size_t)RT_HW_PAGE_END - 1, (rt_size_t)ARCH_MAP_FAILED, NORMAL_MEM},
-    {0x1000, ((KERNEL_VADDR_START - 1) & 0xfffff000) - 1, (rt_size_t)ARCH_MAP_FAILED, DEVICE_MEM},
+    {KERNEL_START, (rt_size_t)RT_HW_PAGE_END - 1, (rt_size_t)ARCH_MAP_FAILED, NORMAL_MEM},
 };
 
 #define NUM_MEM_DESC (sizeof(platform_mem_desc) / sizeof(platform_mem_desc[0]))
@@ -38,7 +51,7 @@ void init_bss(void)
     unsigned int *dst;
 
     dst = &__bss_start;
-    while (dst < &__bss_end)
+    while ((rt_ubase_t)dst < (rt_ubase_t)&__bss_end)
     {
         *dst++ = 0;
     }
@@ -62,7 +75,7 @@ void primary_cpu_entry(void)
 
 #define IOREMAP_SIZE (1ul << 30)
 
-#ifndef ARCH_KERNEL_IN_HIGH_VA
+#ifndef ARCH_REMAP_KERNEL
 #define IOREMAP_VEND USER_VADDR_START
 #else
 #define IOREMAP_VEND 0ul
@@ -106,6 +119,6 @@ void rt_hw_board_init(void)
 #endif
 
 #ifdef RT_USING_HEAP
-    rt_kprintf("heap: [0x%08x - 0x%08x]\n", (rt_ubase_t)RT_HW_HEAP_BEGIN, (rt_ubase_t)RT_HW_HEAP_END);
+    rt_kprintf("heap: [0x%p - 0x%p]\n", (rt_ubase_t)RT_HW_HEAP_BEGIN, (rt_ubase_t)RT_HW_HEAP_END);
 #endif /* RT_USING_HEAP */
 }

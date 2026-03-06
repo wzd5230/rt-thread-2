@@ -5,12 +5,12 @@
  *
  * Change Logs:
  * Date           Author            Notes
- * 2020-07-13     Dozingfiretruck   first version
+ * 2020-07-13     PeakRacing   first version
  */
 
 #include <rtthread.h>
-#include "spi_flash.h"
-#include "spi_flash_sfud.h"
+#include "dev_spi_flash.h"
+#include "dev_spi_flash_sfud.h"
 #include "drv_spi.h"
 
 #if defined(BSP_USING_SPI_FLASH)

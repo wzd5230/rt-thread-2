@@ -24,6 +24,10 @@
 #include "plic.h"
 #include "stack.h"
 
+#ifdef RT_USING_SMP
+#include "interrupt.h"
+#endif /* RT_USING_SMP */
+
 #ifdef RT_USING_SMART
 #include "riscv_mmu.h"
 #include "mmu.h"
@@ -42,6 +46,11 @@ struct mem_desc platform_mem_desc[] = {
 
 #endif
 
+rt_uint64_t rt_hw_get_clock_timer_freq(void)
+{
+    return 10000000ULL;
+}
+
 void primary_cpu_entry(void)
 {
     /* disable global interrupt */
@@ -52,11 +61,11 @@ void primary_cpu_entry(void)
 
 #define IOREMAP_SIZE (1ul << 30)
 
-#ifndef ARCH_KERNEL_IN_HIGH_VA
+#ifndef ARCH_REMAP_KERNEL
 #define IOREMAP_VEND USER_VADDR_START
 #else
 #define IOREMAP_VEND 0ul
-#endif
+#endif /* ARCH_REMAP_KERNEL */
 
 void rt_hw_board_init(void)
 {
@@ -89,6 +98,11 @@ void rt_hw_board_init(void)
 
     rt_hw_tick_init();
 
+#ifdef RT_USING_SMP
+    /* ipi init */
+    rt_hw_ipi_init();
+#endif /* RT_USING_SMP */
+
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
 #endif
@@ -106,4 +120,3 @@ void rt_hw_cpu_reset(void)
         ;
 }
 MSH_CMD_EXPORT_ALIAS(rt_hw_cpu_reset, reboot, reset machine);
-

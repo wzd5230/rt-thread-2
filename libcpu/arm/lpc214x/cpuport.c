@@ -16,7 +16,7 @@
 #define MAX_HANDLERS    32
 #define SVCMODE         0x13
 
-extern rt_uint32_t rt_interrupt_nest;
+extern rt_atomic_t rt_interrupt_nest;
 
 /* exception and interrupt handler table */
 struct rt_irq_desc irq_desc[MAX_HANDLERS];
@@ -74,7 +74,7 @@ rt_uint32_t rt_thread_switch_interrupt_flag;
 
 void rt_hw_interrupt_handler(int vector, void *param)
 {
-    rt_kprintf("Unhandled interrupt %d occured!!!\n", vector);
+    rt_kprintf("Unhandled interrupt %d occurred!!!\n", vector);
 }
 
 /**

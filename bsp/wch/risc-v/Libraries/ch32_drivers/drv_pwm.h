@@ -19,8 +19,8 @@
 #if defined(SOC_RISCV_SERIES_CH32V2)
 #include "ch32v20x_tim.h"
 #endif
-#include <drivers/rt_drv_pwm.h>
-#include <drivers/hwtimer.h>
+#include <drivers/dev_pwm.h>
+#include <drivers/clock_time.h>
 #include <board.h>
 
 #define MAX_COUNTER     65535

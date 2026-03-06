@@ -13,7 +13,7 @@
 
 #define MAX_HANDLERS    32
 
-extern rt_uint32_t rt_interrupt_nest;
+extern rt_atomic_t rt_interrupt_nest;
 
 rt_uint32_t rt_interrupt_from_thread, rt_interrupt_to_thread;
 rt_uint32_t rt_thread_switch_interrupt_flag;
@@ -25,7 +25,7 @@ rt_uint32_t rt_thread_switch_interrupt_flag;
 
 void rt_hw_interrupt_handler(int vector)
 {
-    rt_kprintf("Unhandled interrupt %d occured!!!\n", vector);
+    rt_kprintf("Unhandled interrupt %d occurred!!!\n", vector);
 }
 
 /**
